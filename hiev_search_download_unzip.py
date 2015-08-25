@@ -13,6 +13,7 @@ Date: August 2015
 import os
 import json
 import urllib2
+import zipfile
 from datetime import datetime
 
 
@@ -47,10 +48,11 @@ js = json.load(response)
 # If there are returned results then proceed to download
 log.write(' Number of search results returned = %s \n' %len(js))
 if len(js):
-    # -- Set up a directory to hold downloaded files (if not already existing)
+    # -- Set up a directory to hold downloaded files and unzipped files (if not already existing)
     dest_dir = os.path.join(os.path.join(os.path.dirname(__file__), 'data'))
-    if not os.path.exists(dest_dir):
-        os.makedirs(dest_dir)
+    unzipped_dir = os.path.join(os.path.dirname(__file__), 'data', 'unzipped')
+    if not os.path.exists(unzipped_dir):
+        os.makedirs(unzipped_dir)
         
     # --For each element returned pass the url to the download API and download
     for entry in js:
@@ -65,6 +67,16 @@ if len(js):
                 local_file.write(f.read())
             local_file.close()
             log.write(' Success: File Downloaded - %s \n' %entry['filename'])
+            
+    	    # If the current file is a zipped file, unzip it
+    	    if entry['filename'].endswith(".zip"):
+                # first check that an unzip directory for that zipped file hasn't already been created, otherwise create it
+                zipname = os.path.splitext(entry['filename'])[0]
+                if not os.path.join(unzipped_dir, zipname):
+                    os.makedirs(unzipped_dir, zipname)
+                zfile = zipfile.ZipFile(os.path.join(dest_dir, entry['filename']))		    
+                zfile.extractall(os.path.join(unzipped_dir, zipname))
+     	        log.write(' Success: File Unzipped - %s \n' %entry['filename'])
         else:
             log.write(' Warning: File Exists - %s \n' %entry['filename'])
 
